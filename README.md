@@ -130,4 +130,16 @@ With more time: a printable receipt, a second discount (for example 25% off Latt
   - Manual desktop journey: open app → add Latte, 3× Ice Tea, 2× Pepsi → confirm CNY 103.50
   - Manual mobile journey: same flow at a narrow viewport, including quantity, remove, and the final-amount chip
   - Forced API failure: confirm the cart is kept and Retry works
-- **Decisions after reviewing generated code:** keep billing logic in a Spring-light `BillingCalculator`; return money as strings; use HTTP 400 with one error envelope instead of mixed 400/422; serve the UI from the same Spring Boot process so local setup stays empty of extra infrastructure.
+
+### Decisions after reviewing generated code
+
+These are the choices kept or changed after reading the generated implementation, not the first draft as-is:
+
+- **Stack:** the first backend was Python / FastAPI. After review it was replaced with Java 21 / Spring Boot / Gradle so money could be `BigDecimal` and the project would match a Java workspace.
+- **Billing isolation:** discount and line totals live in `BillingCalculator`, not the REST controller, so the 100 / 200 CNY rules can be unit-tested without HTTP.
+- **Money in JSON:** amounts are two-decimal strings (`"11.50"`), not JSON numbers, so clients never parse them as binary floats. Internally, rates are `new BigDecimal("0.10")`, never `0.10`.
+- **Errors:** one HTTP **400** envelope (`VALIDATION_ERROR` + `details`) instead of mixing 400 and 422.
+- **UI hosting:** static HTML/CSS/JS is served by the same Spring Boot process as the API, so there is no second frontend server.
+- **Mobile layout (after a browser pass):** a bottom “final amount” bar covered quantity/remove controls. It was moved to a header chip that jumps to the receipt.
+- **DOM (after reviewing generated JS):** menu prices are set with `textContent`, not `innerHTML`.
+- **Cart UX:** the first UI required an **Update bill** click. After using it, cart changes POST to `/api/bills` immediately so the displayed totals always match the server.
