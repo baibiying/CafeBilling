@@ -8,7 +8,6 @@ const finalAmountEl = document.querySelector("#final-amount");
 const mobileFinalEl = document.querySelector("#mobile-final");
 const errorBanner = document.querySelector("#error-banner");
 const billStatus = document.querySelector("#bill-status");
-const updateButton = document.querySelector("#update-bill");
 
 const state = {
   menu: [],
@@ -224,7 +223,6 @@ function renderBill() {
 function render() {
   renderMenu();
   renderBill();
-  updateButton.disabled = state.loading;
   billStatus.textContent = state.loading ? "Calculating…" : "";
 }
 
@@ -267,5 +265,4 @@ async function updateBill() {
   }
 }
 
-updateButton.addEventListener("click", () => updateBill());
 loadMenu();

@@ -33,9 +33,9 @@ The same process serves the UI and the JSON API:
 1. On load, the UI fetches the menu from the server and starts with an empty bill.
 2. Adding an item that is already on the bill increases its quantity instead of adding a duplicate line.
 3. Quantity can be increased, decreased, or removed. Decreasing below 1 removes the line.
-4. The UI sends `{ code, quantity }` to `POST /api/bills` after each change, and also has an **Update bill** button.
+4. The UI sends `{ code, quantity }` to `POST /api/bills` after each cart change so the displayed totals always come from the server.
 5. The rendered totals are the server response: line totals, subtotal, discount, final amount, currency **CNY**.
-6. If a request fails, the current selection is kept, an error is shown, and Retry / Update bill can be used again.
+6. If a request fails, the current selection is kept, an error is shown, and **Retry** can be used again.
 
 ### Discount rules (server)
 
@@ -116,7 +116,7 @@ src/test/java                                             Billing unit tests and
 - Java 21 / Spring Boot / Gradle so money can be `BigDecimal` with half-up rounding to two cents, and so the app runs with the Gradle wrapper.
 - Duplicate codes in one request are merged rather than rejected.
 - An empty `items` list is a valid zero bill, not an error.
-- The UI updates the bill automatically after cart changes; the explicit button is still there for retries and for the required journey.
+- The UI updates the bill automatically after cart changes.
 - No persistence, auth, tax, or payments — those are out of scope.
 
 With more time: a printable receipt, a second discount (for example 25% off Latte at quantity ≥ 2), and a focused frontend test for the add-same-item path.
