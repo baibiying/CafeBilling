@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#5C3317" />
+    <title>Café Billing</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#menu">Skip to menu</a>
+    <header class="site-header">
+      <div class="brand">
+        <p class="brand-kicker">Counter</p>
+        <h1>Café Billing</h1>
+        <p class="brand-sub">Add drinks, adjust quantities, and get a server-calculated bill in CNY.</p>
+      </div>
+      <a class="mobile-summary" href="#bill">
+        <span class="mobile-bar-label">Final amount</span>
+        <strong id="mobile-final" class="mobile-bar-amount">CNY 0.00</strong>
+        <span class="mobile-bar-link">View bill</span>
+      </a>
+    </header>
+
+    <main class="layout">
+      <section id="menu" class="panel menu-panel" aria-labelledby="menu-heading">
+        <div class="panel-head">
+          <h2 id="menu-heading">Menu</h2>
+          <p class="panel-hint">Prices are in CNY. Adding an item already on the bill increases its quantity.</p>
+        </div>
+        <div id="menu-status" class="status" role="status"></div>
+        <div id="menu-list"></div>
+      </section>
+
+      <aside id="bill" class="panel bill-panel" aria-labelledby="bill-heading">
+        <div class="panel-head">
+          <h2 id="bill-heading">Bill</h2>
+          <p class="panel-hint">Line totals, discount, and the final amount come from the server.</p>
+        </div>
+
+        <div id="error-banner" class="error-banner" hidden role="alert"></div>
+
+        <div class="receipt">
+          <div class="receipt-top">
+            <span>Itemized bill</span>
+            <span>CNY</span>
+          </div>
+          <div id="bill-lines" class="receipt-body"></div>
+          <dl class="totals">
+            <div>
+              <dt>Subtotal</dt>
+              <dd id="subtotal">CNY 0.00</dd>
+            </div>
+            <div>
+              <dt>Discount <span id="discount-note" class="discount-note"></span></dt>
+              <dd id="discount">CNY 0.00</dd>
+            </div>
+            <div class="grand">
+              <dt>Final amount</dt>
+              <dd id="final-amount" aria-live="polite">CNY 0.00</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="bill-actions">
+          <button type="button" id="update-bill" class="primary">
+            Update bill
+          </button>
+          <p id="bill-status" class="status" role="status"></p>
+        </div>
+      </aside>
+    </main>
+
+    <script src="/js/app.js" type="module"></script>
+  </body>
+</html>
