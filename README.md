@@ -84,8 +84,6 @@ Final amount: 201.00 − 20.20 = **180.80**.
 
 Note: The request may only send **item code and quantity**. Prices are not accepted from the browser. Extra fields such as `unitPrice` are ignored; the line still uses the server menu (Latte stays 30.00, not 1.00)
 
-```
-
 #### Success
 
 Request:
