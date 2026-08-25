@@ -17,10 +17,6 @@ Gradle is provided by the wrapper. No database, Docker, cloud account, or API ke
 
 This starts the Spring Boot app. Open [http://127.0.0.1:8080](http://127.0.0.1:8080).
 
-The same process serves the UI and the JSON API:
-
-- `GET /api/menu`
-- `POST /api/bills`
 
 ## Run backend tests
 
@@ -28,20 +24,21 @@ The same process serves the UI and the JSON API:
 ./gradlew test
 ```
 
-Formatter / static check (Java):
-
-```bash
-./gradlew spotlessCheck
-```
-
 ## What it does
 
-1. On load, the UI fetches the menu from the server and starts with an empty bill.
+1. On load, the UI fetches the menu from the server. The bill starts empty (*No items yet…*).
 2. Adding an item that is already on the bill increases its quantity instead of adding a duplicate line.
 3. Quantity can be increased, decreased, or removed. Decreasing below 1 removes the line.
-4. The UI sends `{ code, quantity }` to `POST /api/bills` after each cart change so the displayed totals always come from the server.
+4. The UI sends `{ code, quantity }` to `POST /api/bills` after each cart change so the displayed totals always come from the server. Prices never go in that request.
 5. The rendered totals are the server response: line totals, subtotal, discount, final amount, currency **CNY**.
-6. If a request fails, the current selection is kept, an error is shown, and **Retry** can be used again.
+6. If `POST /api/bills` fails, the cart is kept. A **red error banner** appears **above the bill**, with a **Retry** button. That banner is not shown on a successful update. To see it: load the app and add an item, stop the server, add or change a quantity — the red bar and **Retry** show up. Start the server again and click **Retry**. 
+
+Request flow:
+
+- `GET /api/menu`: browser → `CafeApiController` → `MenuCatalog` → JSON menu
+- `POST /api/bills`: browser → `CafeApiController.createBill` → `BillingCalculator.calculateBill` (prices from `MenuCatalog`) → JSON bill
+
+Discount math is unit-tested on `BillingCalculator` without HTTP.
 
 ### Discount rules (server)
 
@@ -51,9 +48,18 @@ Formatter / static check (Java):
 | > 100 and ≤ 200 CNY | 10% of the entire subtotal |
 | > 200 CNY | 10% of the first 200 CNY, plus 20% of the remainder |
 
-Worked examples from the brief: 115 CNY → discount 11.50, final 103.50; 201 CNY → discount 20.20, final 180.80.
+Worked example from the brief (this is the desktop demo order):
 
-There is also an item promotion: **25% off Latte when quantity is 2 or more**. It comes off the list-price subtotal first; the 100 / 200 CNY tiers then apply to what remains. Line totals stay at unit price × quantity. Two Lattes are list 60.00, discount 15.00, final 45.00.
+| Item | Qty | Line |
+| --- | --- | --- |
+| Coffee — Latte (CL, 30) | 1 | 30 |
+| Tea — Ice (TI, 15) | 3 | 45 |
+| Cold Drink — Pepsi (CDP, 20) | 2 | 40 |
+| **Subtotal** | | **115.00** |
+
+115 is in the 10% band → discount 11.50, final **103.50**. A subtotal of 201 → 10% of 200 plus 20% of 1 → discount 20.20, final 180.80.
+
+**Bonus (not required by the brief):** 25% off Latte when quantity is 2 or more. Applied to the list-price subtotal first; the 100 / 200 CNY tiers then apply to what remains. Line totals stay at unit price × quantity. Two Lattes: list 60.00, discount 15.00, final 45.00.
 
 ## API
 
@@ -153,7 +159,7 @@ src/test/java                                             Billing unit tests and
   - Keyboard: Tab to Add / quantity / Remove; confirm a visible focus outline and that `+` is labelled as increase for that drink
   - Two Lattes: confirm discount 15.00 and final 45.00
   - Print bill: confirm the print preview is the receipt without menu/controls
-  - Forced API failure: confirm the cart is kept and Retry works
+  - Forced API failure: stop the server (or go Offline in DevTools), change the cart, confirm the selection is kept and **Retry** is shown; start the server and click **Retry**.
 
 ### Decisions after reviewing generated code
 
@@ -167,4 +173,20 @@ These are the choices kept or changed after reading the generated implementation
 - **Mobile layout (after a browser pass):** a bottom “final amount” bar covered quantity/remove controls. It was moved to a header chip that jumps to the receipt.
 - **DOM (after reviewing generated JS):** menu prices are set with `textContent`, not `innerHTML`.
 - **Cart UX:** the first UI required an **Update bill** click. After using it, cart changes POST to `/api/bills` immediately so the displayed totals always match the server.
-- **Bonus extras (after the required slice was working):** keep line totals at list price and apply Latte 25% before the 100/200 tiers; use a print stylesheet instead of a second page; skip persisting bills so the in-memory calculator stays the source of truth.
+
+### Bonus extras
+
+Added after the required slice was working. Not needed to run the café flow.
+
+- **Latte 25%** when quantity ≥ 2, applied before the 100/200 CNY tiers. Line totals stay at list price.
+- **Printable receipt** via a print stylesheet, not a second page.
+- **Persistence** of completed bills was skipped so the in-memory calculator stays the source of truth.
+- **Accessibility** (labels, keyboard, focus) was in the first UI, not added as a late extra.
+
+**Formatter (PDF Engineering Practices):** Spotless with Google Java Format. This does **not** run the app or the unit tests. It only checks that every `src/**/*.java` file matches the format (indentation, wrapping, import order). The build fails if something is off; it does not rewrite files. HTML, CSS, JS, and the README are not included.
+
+```bash
+./gradlew spotlessCheck
+```
+
+To apply the format: `./gradlew spotlessApply`.
