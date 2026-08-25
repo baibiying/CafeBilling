@@ -31,16 +31,9 @@ This starts the Spring Boot app. Open [http://127.0.0.1:8080](http://127.0.0.1:8
 3. Quantity can be increased, decreased, or removed. Decreasing below 1 removes the line.
 4. The UI sends `{ code, quantity }` to `POST /api/bills` after each cart change so the displayed totals always come from the server. Prices never go in that request.
 5. The rendered totals are the server response: line totals, subtotal, discount, final amount, currency **CNY**.
-6. If `POST /api/bills` fails, the cart is kept. A **red error banner** appears **above the bill**, with a **Retry** button. That banner is not shown on a successful update. To see it: load the app and add an item, stop the server, add or change a quantity — the red bar and **Retry** show up. Start the server again and click **Retry**. 
+6. If `POST /api/bills` fails, the cart is kept. A **red error banner** appears **above the bill**, with a **Retry** button. That banner is not shown on a successful update. To see it: load the app and add an item, stop the server, add or change a quantity — the red bar and **Retry** show up. Start the server again and click **Retry**.
 
-Request flow:
-
-- `GET /api/menu`: browser → `CafeApiController` → `MenuCatalog` → JSON menu
-- `POST /api/bills`: browser → `CafeApiController.createBill` → `BillingCalculator.calculateBill` (prices from `MenuCatalog`) → JSON bill
-
-Discount math is unit-tested on `BillingCalculator` without HTTP.
-
-### Discount rules (server)
+## Discount rules (server)
 
 | Subtotal | Discount |
 | --- | --- |
@@ -57,11 +50,26 @@ Worked example from the brief (this is the desktop demo order):
 | Cold Drink — Pepsi (CDP, 20) | 2 | 40 |
 | **Subtotal** | | **115.00** |
 
-115 is in the 10% band → discount 11.50, final **103.50**. A subtotal of 201 → 10% of 200 plus 20% of 1 → discount 20.20, final 180.80.
+115 is in the 10% band → discount 11.50, final **103.50**.
 
-**Bonus (not required by the brief):** 25% off Latte when quantity is 2 or more. Applied to the list-price subtotal first; the 100 / 200 CNY tiers then apply to what remains. Line totals stay at unit price × quantity. Two Lattes: list 60.00, discount 15.00, final 45.00.
+Second brief example (subtotal 201, not a specific menu combo):
+
+| Band | Amount | Rate | Discount |
+| --- | --- | --- | --- |
+| First 200 CNY | 200.00 | 10% | 20.00 |
+| Remainder | 1.00 | 20% | 0.20 |
+| **Total** | **201.00** | | **20.20** |
+
+Final amount: 201.00 − 20.20 = **180.80**.
 
 ## API
+
+Request flow:
+
+- `GET /api/menu`: browser → `CafeApiController` → `MenuCatalog` → JSON menu
+- `POST /api/bills`: browser → `CafeApiController.createBill` → `BillingCalculator.calculateBill` (prices from `MenuCatalog`) → JSON bill
+
+Discount math is unit-tested on `BillingCalculator` without HTTP.
 
 `GET /api/menu`
 
@@ -86,7 +94,42 @@ Worked example from the brief (this is the desktop demo order):
 }
 ```
 
-Successful response includes each line’s name, unit price, quantity, and line total, plus subtotal, discount amount and description, final amount, and currency. Money fields are two-decimal strings so the JSON does not go through binary floating point.
+Successful response (same demo order; line order follows the menu, not the request). Money fields are two-decimal strings so the JSON does not go through binary floating point:
+
+```json
+{
+  "currency": "CNY",
+  "lines": [
+    {
+      "code": "TI",
+      "name": "Tea — Ice",
+      "unitPrice": "15.00",
+      "quantity": 3,
+      "lineTotal": "45.00"
+    },
+    {
+      "code": "CL",
+      "name": "Coffee — Latte",
+      "unitPrice": "30.00",
+      "quantity": 1,
+      "lineTotal": "30.00"
+    },
+    {
+      "code": "CDP",
+      "name": "Cold Drink — Pepsi",
+      "unitPrice": "20.00",
+      "quantity": 2,
+      "lineTotal": "40.00"
+    }
+  ],
+  "subtotal": "115.00",
+  "discount": {
+    "amount": "11.50",
+    "description": "10% of the entire subtotal"
+  },
+  "finalAmount": "103.50"
+}
+```
 
 Invalid item codes or non-positive quantities return **400** with a consistent body:
 
@@ -108,7 +151,6 @@ The browser cannot set prices. Extra fields such as `unitPrice` on a bill reques
 
 - **Desktop (≥ 900px):** menu and bill sit side by side; the bill stays sticky while the menu scrolls.
 - **Mobile:** a single column. Quantity and remove controls are at least 44px. A header chip shows the current final amount and jumps to the receipt, so totals stay visible without covering bill controls.
-- **Print:** **Print bill** opens the browser print dialog. The print stylesheet hides the menu and controls and keeps the receipt.
 
 ### Accessibility
 
@@ -120,7 +162,7 @@ The UI is keyboard-usable and labelled for assistive tech, not only clickable:
 - Errors use text plus a Retry control, not colour alone. Discount includes a short description.
 - While a bill request is in flight, controls are `disabled` and the bill region is `aria-busy`.
 
-With more time: a collapsible mobile bill drawer, and larger type on the printed receipt.
+With more time: a collapsible mobile bill drawer.
 
 Screenshots:
 
@@ -178,8 +220,8 @@ These are the choices kept or changed after reading the generated implementation
 
 Added after the required slice was working. Not needed to run the café flow.
 
-- **Latte 25%** when quantity ≥ 2, applied before the 100/200 CNY tiers. Line totals stay at list price.
-- **Printable receipt** via a print stylesheet, not a second page.
+- **Latte 25%** (PDF Functional Extension, not required): 25% off Latte when quantity is 2 or more. Applied to the list-price subtotal first; the 100 / 200 CNY tiers then apply to what remains. Line totals stay at unit price × quantity. Two Lattes: list 60.00, discount 15.00, final 45.00.
+- **Printable receipt** (PDF Functional Extension, not required): **Print bill** opens the browser print dialog. A print stylesheet hides the menu and controls and keeps the receipt, instead of a second HTML page. Larger type on the printed receipt would be a further improvement.
 - **Persistence** of completed bills was skipped so the in-memory calculator stays the source of truth.
 - **Accessibility** (labels, keyboard, focus) was in the first UI, not added as a late extra.
 
