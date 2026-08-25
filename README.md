@@ -69,8 +69,6 @@ Request flow:
 - `GET /api/menu`: browser → `CafeApiController` → `MenuCatalog` → JSON menu
 - `POST /api/bills`: browser → `CafeApiController.createBill` → `BillingCalculator.calculateBill` (prices from `MenuCatalog`) → JSON bill
 
-Discount math is unit-tested on `BillingCalculator` without HTTP.
-
 `GET /api/menu`
 
 ```json
@@ -94,7 +92,7 @@ Discount math is unit-tested on `BillingCalculator` without HTTP.
 }
 ```
 
-Successful response (same demo order; line order follows the menu, not the request). Money fields are two-decimal strings so the JSON does not go through binary floating point:
+Successful response. Money fields are two-decimal strings so the JSON does not go through binary floating point:
 
 ```json
 {
@@ -152,6 +150,11 @@ The browser cannot set prices. Extra fields such as `unitPrice` on a bill reques
 - **Desktop (≥ 900px):** menu and bill sit side by side; the bill stays sticky while the menu scrolls.
 - **Mobile:** a single column. Quantity and remove controls are at least 44px. A header chip shows the current final amount and jumps to the receipt, so totals stay visible without covering bill controls.
 
+Screenshots:
+
+- Desktop: `screenshots/desktop.png`
+- Mobile: `screenshots/mobile.png`
+
 ### Accessibility
 
 The UI is keyboard-usable and labelled for assistive tech, not only clickable:
@@ -164,10 +167,6 @@ The UI is keyboard-usable and labelled for assistive tech, not only clickable:
 
 With more time: a collapsible mobile bill drawer.
 
-Screenshots:
-
-- Desktop: `screenshots/desktop.png`
-- Mobile: `screenshots/mobile.png`
 
 ## Project structure
 
