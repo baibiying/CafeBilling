@@ -222,40 +222,6 @@ src/test/java                                             Billing unit tests and
 - The UI updates the bill automatically after cart changes (no separate Calculate button).
 - No persistence, auth, tax, or payments — those are out of scope.
 
-## AI Coding Disclosure
-
-### Model
-
-Cursor Grok 4.6 
-
-### Tools
-
-Cursor agent. Used for: implementation, tests, UI, README
-
-### Validation harness
-
-- `./gradlew test` — billing thresholds at 100 / 200 CNY, the 115 and 201 examples, Latte quantity ≥ 2, unknown codes, invalid quantities, and API error shape
-- `./gradlew spotlessCheck` — verify every `src/**/*.java` matches Google Java Format; fails if off, does not rewrite files
-- Manual desktop journey: open app → add Latte, 3× Ice Tea, 2× Pepsi → confirm CNY 103.50
-- Manual mobile journey: same flow at a narrow viewport, including quantity, remove, and the final-amount chip
-- Keyboard: Tab to Add / quantity / Remove; confirm a visible focus outline and that `+` is labelled as increase for that drink
-- Two Lattes: confirm discount 15.00 and final 45.00
-- Print bill: confirm the print preview is the receipt without menu/controls
-- Forced API failure: stop the server (or go offline in DevTools), change the cart, confirm the selection is kept and **Retry** is shown; start the server and click **Retry**.
-
-### Decisions after reviewing generated code
-
-These are the choices kept or changed after reading the generated implementation, not the first draft as-is:
-
-- **Stack:** the first backend was Python / FastAPI. After review it was replaced with Java 21 / Spring Boot / Gradle so money could be `BigDecimal` (half-up to two cents), and so the app runs with the Gradle wrapper. The wrapper pins the Gradle version; the Spring Boot BOM pins library versions.
-- **Billing isolation:** discount and line totals live in `BillingCalculator`, not the REST controller, so the 100 / 200 CNY rules can be unit-tested without HTTP.
-- **Money in JSON:** amounts are two-decimal strings (`"11.50"`), not JSON numbers, so clients never parse them as binary floats. Internally, rates are `new BigDecimal("0.10")`, never `0.10`.
-- **Errors:** one HTTP **400** envelope (`VALIDATION_ERROR` + `details`) instead of mixing 400 and 422.
-- **UI hosting:** static HTML/CSS/JS is served by the same Spring Boot process as the API, so there is no second frontend server.
-- **Mobile layout (after a browser pass):** a bottom “final amount” bar covered quantity/remove controls. It was moved to a header chip that jumps to the receipt.
-- **DOM (after reviewing generated JS):** menu prices are set with `textContent`, not `innerHTML`.
-- **Cart UX:** the first UI required an **Update bill** click. After using it, cart changes POST to `/api/bills` immediately so the displayed totals always match the server.
-
 ## Bonus extras
 
 ### Accessibility
@@ -301,3 +267,44 @@ Example — two Lattes + 3 Mocha (list 180). After the Latte promo, **165** is s
 ./gradlew spotlessCheck   # check only: fails if any Java file is off-format; does not rewrite files
 ./gradlew spotlessApply   # rewrite: formats every src/**/*.java to match Google Java Format
 ```
+
+## AI Coding Disclosure
+
+### Model
+
+Cursor Grok 4.6 
+
+### Tools
+
+Cursor agent. Used for: implementation, tests, UI, README
+
+### Validation harness
+
+- `./gradlew test` — billing thresholds at 100 / 200 CNY, the 115 and 201 examples, Latte quantity ≥ 2, unknown codes, invalid quantities, and API error shape
+- `./gradlew spotlessCheck` — verify every `src/**/*.java` matches Google Java Format; fails if off, does not rewrite files
+- Manual desktop journey: open app → add Latte, 3× Ice Tea, 2× Pepsi → confirm CNY 103.50
+- Manual mobile journey: same flow at a narrow viewport, including quantity, remove, and the final-amount chip
+- Keyboard: Tab to Add / quantity / Remove; confirm a visible focus outline and that `+` is labelled as increase for that drink
+- Two Lattes: confirm discount 15.00 and final 45.00
+- Print bill: confirm the print preview is the receipt without menu/controls
+- Forced API failure: stop the server (or go offline in DevTools), change the cart, confirm the selection is kept and **Retry** is shown; start the server and click **Retry**.
+
+### Decisions after reviewing generated code
+
+#### Architecture
+
+- **Billing vs HTTP:** the first version mixed discount math into the controller. Totals and discounts were moved into `BillingCalculator` so the 100 / 200 CNY rules are unit-tested with plain JUnit; `CafeApiTest` only samples the JSON contract. Domain calculation stays free of Spring Web.
+- **UI hosting:** static HTML/CSS/JS is served by the same Spring Boot process as the API. A second frontend server would add setup with no product value for this brief.
+- **Error surface:** early version mixed 400 and 422. The API was unified on HTTP **400** with one envelope (`VALIDATION_ERROR` + field-level `details`) so the UI has a single Retry path and tests assert one shape.
+
+#### Technology choices
+
+- **Stack:** the first backend was Python / FastAPI (fast to scaffold). It was replaced with **Java 21 / Spring Boot / Gradle** for three reasons: (1) **money correctness** — `BigDecimal` with half-up to two cents is the natural fit for CNY bills; Python `float` (and even casual `Decimal` use) is easier to get wrong under time pressure; (2) **reproducible review** — `./gradlew` + wrapper pins the Gradle version, Spring Boot BOM pins libraries, so reviewers do not need a matching local Python/venv; (3) **test story matches the brief** — JUnit unit tests on `BillingCalculator` plus Spring MockMvc API tests are a clear split. Prototype speed was traded for currency safety and a one-command run/test path.
+- **No extra frontend framework:** the counter is small enough that vanilla JS + `createElement` / `textContent` is enough; React (or similar) would add a build step without changing the server-owned bill contract.
+
+#### Technical details
+
+- **Money in JSON:** amounts are two-decimal strings (`"11.50"`), not JSON numbers, so clients never re-parse money as binary floats. Rates use `new BigDecimal("0.10")`, never a `double` literal like `0.10`.
+- **DOM safety:** generated menu rendering used `innerHTML` for prices. It was switched to `textContent` / `createElement` so drink names and amounts are never interpreted as HTML.
+- **Mobile layout (found in browser):** a sticky bottom “final amount” bar covered quantity and Remove. It was replaced with a header chip that jumps to the receipt — only visible after a real narrow-viewport pass, not in the first generated CSS.
+- **Cart ↔ bill sync:** the first UI needed an **Update bill** click, so the receipt could lag the cart. After using it, every cart change POSTs `/api/bills` immediately; displayed totals are always the last successful server response (with Retry if the request fails).
