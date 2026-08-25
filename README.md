@@ -82,6 +82,18 @@ Request flow:
 
 `POST /api/bills`
 
+The request may only send **item code and quantity**. Prices are not accepted from the browser. Extra fields such as `unitPrice` are ignored; the line still uses the server menu (Latte stays 30.00, not 1.00):
+
+```json
+{
+  "items": [
+    { "code": "CL", "quantity": 1, "unitPrice": "1.00" }
+  ]
+}
+```
+
+**Success** — request:
+
 ```json
 {
   "items": [
@@ -92,7 +104,7 @@ Request flow:
 }
 ```
 
-Successful response. Money fields are two-decimal strings so the JSON does not go through binary floating point:
+Response. Money fields are two-decimal strings so the JSON does not go through binary floating point:
 
 ```json
 {
@@ -129,7 +141,17 @@ Successful response. Money fields are two-decimal strings so the JSON does not g
 }
 ```
 
-Invalid item codes or non-positive quantities return **400** with a consistent body:
+**Failure (HTTP 400)** — unknown code, request:
+
+```json
+{
+  "items": [
+    { "code": "ZZ", "quantity": 1 }
+  ]
+}
+```
+
+Response:
 
 ```json
 {
@@ -143,7 +165,18 @@ Invalid item codes or non-positive quantities return **400** with a consistent b
 }
 ```
 
-The browser cannot set prices. Extra fields such as `unitPrice` on a bill request are ignored.
+Non-positive quantity uses the same envelope. Request:
+
+```json
+{
+  "items": [
+    { "code": "CL", "quantity": 0 }
+  ]
+}
+```
+
+Response `details` use `"issue": "INVALID_QUANTITY"` instead of `UNKNOWN_ITEM`.
+
 
 ## Layout
 
