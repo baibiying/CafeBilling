@@ -23,6 +23,8 @@ This starts the Spring Boot app. Open [http://127.0.0.1:8080](http://127.0.0.1:8
 ```bash
 ./gradlew test
 ```
+- `CafeApiTest` — `GET /api/menu`, `POST /api/bills` success path, 400 error shape, client-supplied prices ignored
+- `BillingCalculatorTest` — 100 / 200 CNY boundaries, the 115 / 201 examples, Latte promo stacking, duplicate codes merged, unknown code / bad quantity rejected, BigDecimal money
 
 ## What it does
 
