@@ -233,7 +233,7 @@ Cursor agent. Used for: implementation, tests, UI, README
 ### Validation harness
 
 - `./gradlew test` — billing thresholds at 100 / 200 CNY, the 115 and 201 examples, Latte quantity ≥ 2, unknown codes, invalid quantities, and API error shape
-- `./gradlew spotlessCheck` — Google Java Format
+- `./gradlew spotlessCheck` — verify every `src/**/*.java` matches Google Java Format; fails if off, does not rewrite files
 - Manual desktop journey: open app → add Latte, 3× Ice Tea, 2× Pepsi → confirm CNY 103.50
 - Manual mobile journey: same flow at a narrow viewport, including quantity, remove, and the final-amount chip
 - Keyboard: Tab to Add / quantity / Remove; confirm a visible focus outline and that `+` is labelled as increase for that drink
@@ -293,10 +293,9 @@ Example — two Lattes + 3 Mocha (list 180). After the Latte promo, **165** is s
 
 ### Formatter 
 
-Spotless with Google Java Format. This does **not** run the app or the unit tests. It only checks that every `src/**/*.java` file matches the format (indentation, wrapping, import order). The build fails if something is off; it does not rewrite files. HTML, CSS, JS, and the README are not included.
+**Spotless** is a Gradle plugin that enforces a consistent code style. Here it runs **Google Java Format** on `src/**/*.java` (indentation, wrapping, import order). It does **not** run the app or the unit tests. HTML, CSS, JS, and the README are not included.
 
 ```bash
-./gradlew spotlessCheck
+./gradlew spotlessCheck   # check only: fails if any Java file is off-format; does not rewrite files
+./gradlew spotlessApply   # rewrite: formats every src/**/*.java to match Google Java Format
 ```
-
-To apply the format: `./gradlew spotlessApply`.
