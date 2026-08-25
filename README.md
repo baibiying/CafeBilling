@@ -226,12 +226,11 @@ src/test/java                                             Billing unit tests and
 
 ## Assumptions and trade-offs
 
-- Java 21 / Spring Boot / Gradle so money can be `BigDecimal` with half-up rounding to two cents, and so the app runs with the Gradle wrapper. The wrapper pins Gradle; the Spring Boot BOM pins library versions.
 - Duplicate codes in one request are merged rather than rejected.
 - An empty `items` list is a valid zero bill, not an error.
-- The UI updates the bill automatically after cart changes.
+- The UI updates the bill automatically after cart changes (no separate Calculate button).
 - Latte’s 25% promotion is applied before the subtotal tiers, so the two discounts do not double-count the same 60 CNY.
-- No persistence, auth, tax, or payments — those are out of scope. Completed bills are not stored; a JSON file or an embedded store could be added later without changing the bill calculator.
+- No persistence, auth, tax, or payments — those are out of scope.
 
 ## AI Coding Disclosure
 
@@ -251,7 +250,7 @@ src/test/java                                             Billing unit tests and
 
 These are the choices kept or changed after reading the generated implementation, not the first draft as-is:
 
-- **Stack:** the first backend was Python / FastAPI. After review it was replaced with Java 21 / Spring Boot / Gradle so money could be `BigDecimal` and the project would match a Java workspace.
+- **Stack:** the first backend was Python / FastAPI. After review it was replaced with Java 21 / Spring Boot / Gradle so money could be `BigDecimal` (half-up to two cents), and so the app runs with the Gradle wrapper. The wrapper pins the Gradle version; the Spring Boot BOM pins library versions.
 - **Billing isolation:** discount and line totals live in `BillingCalculator`, not the REST controller, so the 100 / 200 CNY rules can be unit-tested without HTTP.
 - **Money in JSON:** amounts are two-decimal strings (`"11.50"`), not JSON numbers, so clients never parse them as binary floats. Internally, rates are `new BigDecimal("0.10")`, never `0.10`.
 - **Errors:** one HTTP **400** envelope (`VALIDATION_ERROR` + `details`) instead of mixing 400 and 422.
