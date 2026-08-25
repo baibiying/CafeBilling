@@ -64,12 +64,12 @@ Final amount: 201.00 − 20.20 = **180.80**.
 
 ## API
 
-Request flow:
+### Request flow
 
 - `GET /api/menu`: browser → `CafeApiController` → `MenuCatalog` → JSON menu
 - `POST /api/bills`: browser → `CafeApiController.createBill` → `BillingCalculator.calculateBill` (prices from `MenuCatalog`) → JSON bill
 
-`GET /api/menu`
+### `GET /api/menu`
 
 ```json
 {
@@ -80,19 +80,15 @@ Request flow:
 }
 ```
 
-`POST /api/bills`
+### `POST /api/bills`
 
-The request may only send **item code and quantity**. Prices are not accepted from the browser. Extra fields such as `unitPrice` are ignored; the line still uses the server menu (Latte stays 30.00, not 1.00):
+Note: The request may only send **item code and quantity**. Prices are not accepted from the browser. Extra fields such as `unitPrice` are ignored; the line still uses the server menu (Latte stays 30.00, not 1.00)
 
-```json
-{
-  "items": [
-    { "code": "CL", "quantity": 1, "unitPrice": "1.00" }
-  ]
-}
 ```
 
-**Success** — request:
+#### Success
+
+Request:
 
 ```json
 {
@@ -141,7 +137,9 @@ Response. Money fields are two-decimal strings so the JSON does not go through b
 }
 ```
 
-**Failure (HTTP 400)** — unknown code, request:
+#### Failure (HTTP 400)
+
+Unknown code, request:
 
 ```json
 {
@@ -175,7 +173,23 @@ Non-positive quantity uses the same envelope. Request:
 }
 ```
 
-Response `details` use `"issue": "INVALID_QUANTITY"` instead of `UNKNOWN_ITEM`.
+Response:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "The bill request is invalid.",
+    "details": [
+      {
+        "field": "items[0].quantity",
+        "issue": "INVALID_QUANTITY",
+        "message": "Quantity must be a positive integer."
+      }
+    ]
+  }
+}
+```
 
 
 ## Layout
