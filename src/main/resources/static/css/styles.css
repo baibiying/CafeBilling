@@ -116,6 +116,14 @@ input {
   padding: 20px;
 }
 
+.panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .panel-head h2 {
   margin: 0;
   font-family: var(--font-display);
@@ -307,6 +315,11 @@ input {
   padding: 0 8px;
 }
 
+.remove:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .totals {
   margin: 0;
   padding: 12px 16px 16px;
@@ -435,5 +448,45 @@ input {
   .site-header,
   .layout {
     width: min(1120px, calc(100% - 24px));
+  }
+}
+
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .skip-link,
+  .no-print,
+  .menu-panel,
+  .mobile-summary,
+  .error-banner,
+  .status,
+  .line-controls {
+    display: none !important;
+  }
+
+  .site-header,
+  .layout,
+  .bill-panel {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: #fff;
+  }
+
+  .bill-panel {
+    position: static;
+  }
+
+  .receipt {
+    border: 1px solid #000;
+  }
+
+  .discount-note {
+    color: #000;
   }
 }

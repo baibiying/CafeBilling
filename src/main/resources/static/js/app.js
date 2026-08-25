@@ -1,5 +1,6 @@
 const menuList = document.querySelector("#menu-list");
 const menuStatus = document.querySelector("#menu-status");
+const billPanel = document.querySelector("#bill");
 const billLines = document.querySelector("#bill-lines");
 const subtotalEl = document.querySelector("#subtotal");
 const discountEl = document.querySelector("#discount");
@@ -8,6 +9,7 @@ const finalAmountEl = document.querySelector("#final-amount");
 const mobileFinalEl = document.querySelector("#mobile-final");
 const errorBanner = document.querySelector("#error-banner");
 const billStatus = document.querySelector("#bill-status");
+const printBill = document.querySelector("#print-bill");
 
 const state = {
   menu: [],
@@ -21,10 +23,6 @@ let billRequestId = 0;
 
 function moneyLabel(amount) {
   return `CNY ${amount}`;
-}
-
-function cartItems() {
-  return [...state.cart.entries()].map(([code, quantity]) => ({ code, quantity }));
 }
 
 function showError(message) {
@@ -63,6 +61,10 @@ async function fetchJson(url, options) {
     throw new Error(details || body?.error?.message || "Request failed. Please try again.");
   }
   return body;
+}
+
+function cartItems() {
+  return [...state.cart.entries()].map(([code, quantity]) => ({ code, quantity }));
 }
 
 function addItem(code) {
@@ -113,6 +115,7 @@ function renderMenu() {
       const copy = document.createElement("div");
       const name = document.createElement("p");
       name.className = "item-name";
+      name.id = `menu-${item.code}`;
       name.textContent = item.name;
       const meta = document.createElement("p");
       meta.className = "item-meta";
@@ -126,7 +129,9 @@ function renderMenu() {
       add.type = "button";
       add.className = "ghost";
       add.textContent = quantity > 0 ? `Add another (${quantity})` : "Add";
-      add.setAttribute("aria-label", `Add ${item.name}`);
+      add.setAttribute("aria-labelledby", name.id);
+      add.setAttribute("aria-pressed", quantity > 0 ? "true" : "false");
+      add.disabled = state.loading;
       add.addEventListener("click", () => addItem(item.code));
 
       row.append(copy, add);
@@ -144,17 +149,21 @@ function quantityControls(code, name, quantity) {
   decrease.type = "button";
   decrease.className = "icon-btn";
   decrease.setAttribute("aria-label", `Decrease ${name}`);
+  decrease.disabled = state.loading;
   decrease.textContent = "−";
   decrease.addEventListener("click", () => setQuantity(code, quantity - 1));
 
   const value = document.createElement("span");
   value.className = "qty-value";
+  value.setAttribute("aria-live", "polite");
+  value.setAttribute("aria-label", `Quantity of ${name}`);
   value.textContent = String(quantity);
 
   const increase = document.createElement("button");
   increase.type = "button";
   increase.className = "icon-btn";
   increase.setAttribute("aria-label", `Increase ${name}`);
+  increase.disabled = state.loading;
   increase.textContent = "+";
   increase.addEventListener("click", () => setQuantity(code, quantity + 1));
 
@@ -165,8 +174,12 @@ function quantityControls(code, name, quantity) {
 function renderBill() {
   billLines.replaceChildren();
   const bill = state.bill;
+  const hasLines = Boolean(bill && bill.lines.length > 0);
 
-  if (!bill || bill.lines.length === 0) {
+  printBill.disabled = state.loading || !hasLines;
+  billPanel.setAttribute("aria-busy", state.loading ? "true" : "false");
+
+  if (!hasLines) {
     const empty = document.createElement("p");
     empty.className = "empty-bill";
     empty.textContent = "No items yet. Add drinks from the menu to start a bill.";
@@ -200,12 +213,13 @@ function renderBill() {
     total.textContent = moneyLabel(line.lineTotal);
 
     const controls = document.createElement("div");
-    controls.className = "line-controls";
+    controls.className = "line-controls no-print";
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "remove";
     remove.textContent = "Remove";
     remove.setAttribute("aria-label", `Remove ${line.name}`);
+    remove.disabled = state.loading;
     remove.addEventListener("click", () => removeItem(line.code));
     controls.append(remove);
 
@@ -265,4 +279,5 @@ async function updateBill() {
   }
 }
 
+printBill.addEventListener("click", () => window.print());
 loadMenu();

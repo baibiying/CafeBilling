@@ -28,6 +28,12 @@ The same process serves the UI and the JSON API:
 ./gradlew test
 ```
 
+Formatter / static check (Java):
+
+```bash
+./gradlew spotlessCheck
+```
+
 ## What it does
 
 1. On load, the UI fetches the menu from the server and starts with an empty bill.
@@ -46,6 +52,8 @@ The same process serves the UI and the JSON API:
 | > 200 CNY | 10% of the first 200 CNY, plus 20% of the remainder |
 
 Worked examples from the brief: 115 CNY → discount 11.50, final 103.50; 201 CNY → discount 20.20, final 180.80.
+
+There is also an item promotion: **25% off Latte when quantity is 2 or more**. It comes off the list-price subtotal first; the 100 / 200 CNY tiers then apply to what remains. Line totals stay at unit price × quantity. Two Lattes are list 60.00, discount 15.00, final 45.00.
 
 ## API
 
@@ -94,6 +102,19 @@ The browser cannot set prices. Extra fields such as `unitPrice` on a bill reques
 
 - **Desktop (≥ 900px):** menu and bill sit side by side; the bill stays sticky while the menu scrolls.
 - **Mobile:** a single column. Quantity and remove controls are at least 44px. A header chip shows the current final amount and jumps to the receipt, so totals stay visible without covering bill controls.
+- **Print:** **Print bill** opens the browser print dialog. The print stylesheet hides the menu and controls and keeps the receipt.
+
+### Accessibility
+
+The UI is keyboard-usable and labelled for assistive tech, not only clickable:
+
+- Semantic regions (`header`, `main`, `section`, `aside`) and headings so Menu and Bill are distinct.
+- A skip link jumps to the menu. Quantity `+` / `−` and Remove have `aria-label`s (a lone “+” is not enough).
+- Real `button`s, so Tab reaches Add, quantity, Remove, Retry, and Print. `:focus-visible` draws an outline on the focused control.
+- Errors use text plus a Retry control, not colour alone. Discount includes a short description.
+- While a bill request is in flight, controls are `disabled` and the bill region is `aria-busy`.
+
+With more time: a collapsible mobile bill drawer, and larger type on the printed receipt.
 
 Screenshots:
 
@@ -113,22 +134,25 @@ src/test/java                                             Billing unit tests and
 
 ## Assumptions and trade-offs
 
-- Java 21 / Spring Boot / Gradle so money can be `BigDecimal` with half-up rounding to two cents, and so the app runs with the Gradle wrapper.
+- Java 21 / Spring Boot / Gradle so money can be `BigDecimal` with half-up rounding to two cents, and so the app runs with the Gradle wrapper. The wrapper pins Gradle; the Spring Boot BOM pins library versions.
 - Duplicate codes in one request are merged rather than rejected.
 - An empty `items` list is a valid zero bill, not an error.
 - The UI updates the bill automatically after cart changes.
-- No persistence, auth, tax, or payments — those are out of scope.
-
-With more time: a printable receipt, a second discount (for example 25% off Latte at quantity ≥ 2), and a focused frontend test for the add-same-item path.
+- Latte’s 25% promotion is applied before the subtotal tiers, so the two discounts do not double-count the same 60 CNY.
+- No persistence, auth, tax, or payments — those are out of scope. Completed bills are not stored; a JSON file or an embedded store could be added later without changing the bill calculator.
 
 ## AI Coding Disclosure
 
 - **Model:** Cursor Grok 4.6 (SpaceXAI / Cursor)
 - **Tools:** Cursor agent (implementation, tests, UI, README). No other agents.
 - **Validation harness:**
-  - `./gradlew test` — billing thresholds at 100 / 200 CNY, the 115 and 201 examples, unknown codes, invalid quantities, and API error shape
+  - `./gradlew test` — billing thresholds at 100 / 200 CNY, the 115 and 201 examples, Latte quantity ≥ 2, unknown codes, invalid quantities, and API error shape
+  - `./gradlew spotlessCheck` — Google Java Format
   - Manual desktop journey: open app → add Latte, 3× Ice Tea, 2× Pepsi → confirm CNY 103.50
   - Manual mobile journey: same flow at a narrow viewport, including quantity, remove, and the final-amount chip
+  - Keyboard: Tab to Add / quantity / Remove; confirm a visible focus outline and that `+` is labelled as increase for that drink
+  - Two Lattes: confirm discount 15.00 and final 45.00
+  - Print bill: confirm the print preview is the receipt without menu/controls
   - Forced API failure: confirm the cart is kept and Retry works
 
 ### Decisions after reviewing generated code
@@ -143,3 +167,4 @@ These are the choices kept or changed after reading the generated implementation
 - **Mobile layout (after a browser pass):** a bottom “final amount” bar covered quantity/remove controls. It was moved to a header chip that jumps to the receipt.
 - **DOM (after reviewing generated JS):** menu prices are set with `textContent`, not `innerHTML`.
 - **Cart UX:** the first UI required an **Update bill** click. After using it, cart changes POST to `/api/bills` immediately so the displayed totals always match the server.
+- **Bonus extras (after the required slice was working):** keep line totals at list price and apply Latte 25% before the 100/200 tiers; use a print stylesheet instead of a second page; skip persisting bills so the in-memory calculator stays the source of truth.

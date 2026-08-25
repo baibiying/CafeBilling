@@ -23,49 +23,50 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api")
 public class CafeApiController {
 
-    private final MenuCatalog menu;
-    private final BillingCalculator billing;
+  private final MenuCatalog menu;
+  private final BillingCalculator billing;
 
-    public CafeApiController(MenuCatalog menu, BillingCalculator billing) {
-        this.menu = menu;
-        this.billing = billing;
-    }
+  public CafeApiController(MenuCatalog menu, BillingCalculator billing) {
+    this.menu = menu;
+    this.billing = billing;
+  }
 
-    @GetMapping("/menu")
-    public MenuResponse menu() {
-        return new MenuResponse(
-                Money.CURRENCY,
-                menu.items().stream()
-                        .map(item -> new MenuItemResponse(
-                                item.code(),
-                                item.name(),
-                                item.category(),
-                                Money.format(item.unitPrice())))
-                        .toList());
-    }
+  @GetMapping("/menu")
+  public MenuResponse menu() {
+    return new MenuResponse(
+        Money.CURRENCY,
+        menu.items().stream()
+            .map(
+                item ->
+                    new MenuItemResponse(
+                        item.code(), item.name(), item.category(), Money.format(item.unitPrice())))
+            .toList());
+  }
 
-    @PostMapping("/bills")
-    public BillResponse createBill(@Valid @RequestBody BillRequest request) {
-        List<RequestedItem> items = request.items().stream()
-                .map(item -> new RequestedItem(item.code(), item.quantity()))
-                .toList();
-        return toResponse(billing.calculateBill(items));
-    }
+  @PostMapping("/bills")
+  public BillResponse createBill(@Valid @RequestBody BillRequest request) {
+    List<RequestedItem> items =
+        request.items().stream()
+            .map(item -> new RequestedItem(item.code(), item.quantity()))
+            .toList();
+    return toResponse(billing.calculateBill(items));
+  }
 
-    private static BillResponse toResponse(Bill bill) {
-        return new BillResponse(
-                bill.currency(),
-                bill.lines().stream()
-                        .map(line -> new BillLineResponse(
-                                line.code(),
-                                line.name(),
-                                Money.format(line.unitPrice()),
-                                line.quantity(),
-                                Money.format(line.lineTotal())))
-                        .toList(),
-                Money.format(bill.subtotal()),
-                new DiscountResponse(
-                        Money.format(bill.discount().amount()), bill.discount().description()),
-                Money.format(bill.finalAmount()));
-    }
+  private static BillResponse toResponse(Bill bill) {
+    return new BillResponse(
+        bill.currency(),
+        bill.lines().stream()
+            .map(
+                line ->
+                    new BillLineResponse(
+                        line.code(),
+                        line.name(),
+                        Money.format(line.unitPrice()),
+                        line.quantity(),
+                        Money.format(line.lineTotal())))
+            .toList(),
+        Money.format(bill.subtotal()),
+        new DiscountResponse(Money.format(bill.discount().amount()), bill.discount().description()),
+        Money.format(bill.finalAmount()));
+  }
 }
