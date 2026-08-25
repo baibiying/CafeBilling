@@ -200,18 +200,7 @@ Screenshots:
 - Desktop: `screenshots/desktop.png`
 - Mobile: `screenshots/mobile.png`
 
-### Accessibility
-
-The UI is keyboard-usable and labelled for assistive tech, not only clickable:
-
-- Semantic regions (`header`, `main`, `section`, `aside`) and headings so Menu and Bill are distinct.
-- A skip link jumps to the menu. Quantity `+` / `−` and Remove have `aria-label`s (a lone “+” is not enough).
-- Real `button`s, so Tab reaches Add, quantity, Remove, Retry, and Print. `:focus-visible` draws an outline on the focused control.
-- Errors use text plus a Retry control, not colour alone. Discount includes a short description.
-- While a bill request is in flight, controls are `disabled` and the bill region is `aria-busy`.
-
 With more time: a collapsible mobile bill drawer.
-
 
 ## Project structure
 
@@ -229,22 +218,28 @@ src/test/java                                             Billing unit tests and
 - Duplicate codes in one request are merged rather than rejected.
 - An empty `items` list is a valid zero bill, not an error.
 - The UI updates the bill automatically after cart changes (no separate Calculate button).
-- Latte’s 25% promotion is applied before the subtotal tiers, so the two discounts do not double-count the same 60 CNY.
 - No persistence, auth, tax, or payments — those are out of scope.
 
 ## AI Coding Disclosure
 
-- **Model:** Cursor Grok 4.6 (SpaceXAI / Cursor)
-- **Tools:** Cursor agent (implementation, tests, UI, README). No other agents.
-- **Validation harness:**
-  - `./gradlew test` — billing thresholds at 100 / 200 CNY, the 115 and 201 examples, Latte quantity ≥ 2, unknown codes, invalid quantities, and API error shape
-  - `./gradlew spotlessCheck` — Google Java Format
-  - Manual desktop journey: open app → add Latte, 3× Ice Tea, 2× Pepsi → confirm CNY 103.50
-  - Manual mobile journey: same flow at a narrow viewport, including quantity, remove, and the final-amount chip
-  - Keyboard: Tab to Add / quantity / Remove; confirm a visible focus outline and that `+` is labelled as increase for that drink
-  - Two Lattes: confirm discount 15.00 and final 45.00
-  - Print bill: confirm the print preview is the receipt without menu/controls
-  - Forced API failure: stop the server (or go Offline in DevTools), change the cart, confirm the selection is kept and **Retry** is shown; start the server and click **Retry**.
+### Model
+
+Cursor Grok 4.6 
+
+### Tools
+
+Cursor agent. Used for: implementation, tests, UI, README
+
+### Validation harness
+
+- `./gradlew test` — billing thresholds at 100 / 200 CNY, the 115 and 201 examples, Latte quantity ≥ 2, unknown codes, invalid quantities, and API error shape
+- `./gradlew spotlessCheck` — Google Java Format
+- Manual desktop journey: open app → add Latte, 3× Ice Tea, 2× Pepsi → confirm CNY 103.50
+- Manual mobile journey: same flow at a narrow viewport, including quantity, remove, and the final-amount chip
+- Keyboard: Tab to Add / quantity / Remove; confirm a visible focus outline and that `+` is labelled as increase for that drink
+- Two Lattes: confirm discount 15.00 and final 45.00
+- Print bill: confirm the print preview is the receipt without menu/controls
+- Forced API failure: stop the server (or go offline in DevTools), change the cart, confirm the selection is kept and **Retry** is shown; start the server and click **Retry**.
 
 ### Decisions after reviewing generated code
 
@@ -259,16 +254,46 @@ These are the choices kept or changed after reading the generated implementation
 - **DOM (after reviewing generated JS):** menu prices are set with `textContent`, not `innerHTML`.
 - **Cart UX:** the first UI required an **Update bill** click. After using it, cart changes POST to `/api/bills` immediately so the displayed totals always match the server.
 
-### Bonus extras
+## Bonus extras
 
-Added after the required slice was working. Not needed to run the café flow.
+### Accessibility
 
-- **Latte 25%** (PDF Functional Extension, not required): 25% off Latte when quantity is 2 or more. Applied to the list-price subtotal first; the 100 / 200 CNY tiers then apply to what remains. Line totals stay at unit price × quantity. Two Lattes: list 60.00, discount 15.00, final 45.00.
-- **Printable receipt** (PDF Functional Extension, not required): **Print bill** opens the browser print dialog. A print stylesheet hides the menu and controls and keeps the receipt, instead of a second HTML page. Larger type on the printed receipt would be a further improvement.
-- **Persistence** of completed bills was skipped so the in-memory calculator stays the source of truth.
-- **Accessibility** (labels, keyboard, focus) was in the first UI, not added as a late extra.
+#### Keyboard
 
-**Formatter (PDF Engineering Practices):** Spotless with Google Java Format. This does **not** run the app or the unit tests. It only checks that every `src/**/*.java` file matches the format (indentation, wrapping, import order). The build fails if something is off; it does not rewrite files. HTML, CSS, JS, and the README are not included.
+- Controls are real HTML `button`s, so the browser handles Tab focus and Enter / Space activation
+- When clicking the Tab, it reaches **Skip to menu**, Add, quantity `+` / `−`, Remove, Retry, and Print in sequence
+- Keyboard focus shows a visible outline (`:focus-visible`).
+
+#### Screen reader
+
+- Landmarks (`header`, `main`, `section`, `aside`) and headings keep Menu and Bill as separate regions.
+- Quantity `+` / `−` and Remove use full `aria-label`s (e.g. “Increase Latte”), not a bare “+”.
+- While recalculating, the bill panel is marked `aria-busy`; the final amount uses `aria-live` so updates can be spoken.
+
+### Latte 25%
+
+25% off Latte when quantity is 2 or more. Applied to the list-price subtotal first; the 100 / 200 CNY tiers then apply to what remains, so the same 60 CNY is not discounted twice. Line totals stay at unit price × quantity.
+
+Example — two Lattes + 3 Mocha (list 180). After the Latte promo, **165** is still in the 100–200 band, so 10% of that remainder also applies:
+
+| | Amount |
+| --- | --- |
+| Latte line (30 × 2) | 60.00 |
+| Mocha line (40 × 3) | 120.00 |
+| **List subtotal** | **180.00** |
+| Latte promo (25% of 60) | −15.00 |
+| Amount after promo | 165.00 |
+| Tiered discount (10% of 165) | −16.50 |
+| **Total discount** | **31.50** |
+| **Final** | **148.50** |
+
+### Printable receipt
+
+**Print bill** opens the browser print dialog. A print stylesheet hides the menu and controls and keeps the receipt, instead of a second HTML page. Larger type on the printed receipt would be a further improvement.
+
+### Formatter 
+
+Spotless with Google Java Format. This does **not** run the app or the unit tests. It only checks that every `src/**/*.java` file matches the format (indentation, wrapping, import order). The build fails if something is off; it does not rewrite files. HTML, CSS, JS, and the README are not included.
 
 ```bash
 ./gradlew spotlessCheck
